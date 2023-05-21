@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="@dimen/spacing_16"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/spacing_16">
+
+    <TextView
+        android:id="@+id/textViewSongName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Song name" />
+
+    <TextView
+        android:id="@+id/textViewArtistName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Artist name"
+        android:textColor="@color/gray" />
+</LinearLayout>
