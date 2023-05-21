@@ -2,20 +2,39 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="@dimen/spacing_16"
-    android:orientation="vertical"
-    android:paddingHorizontal="@dimen/spacing_16">
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_16"
+    android:paddingTop="@dimen/spacing_16">
 
-    <TextView
-        android:id="@+id/textViewSongName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Song name" />
+    <ImageView
+        android:id="@+id/imageViewSong"
+        android:layout_width="@dimen/notification_music_player_image"
+        android:layout_height="@dimen/notification_music_player_image" />
 
-    <TextView
-        android:id="@+id/textViewArtistName"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Artist name"
-        android:textColor="@color/gray" />
+        android:layout_marginStart="@dimen/spacing_8"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textViewSongName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Song name" />
+
+        <TextView
+            android:id="@+id/textViewArtistName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Artist name"
+            android:textColor="@color/gray" />
+    </LinearLayout>
+
 </LinearLayout>

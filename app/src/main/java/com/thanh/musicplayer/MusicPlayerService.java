@@ -6,6 +6,7 @@ import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_STATUS_PLAYER;
 import static com.thanh.musicplayer.ApplicationConstants.CHANNEL_ID;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_DATA_TO_ACTIVITY;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION;
+import static com.thanh.musicplayer.ApplicationConstants.LOG_MUSIC_PLAYER;
 
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -20,6 +21,7 @@ import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -88,6 +90,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
                 isPlaying = true;
                 sendActionToActivity(ACTION_START);
             } catch (IOException e) {
+                Log.e(LOG_MUSIC_PLAYER, e.getMessage());
                 throw new RuntimeException(e);
             }
         }
@@ -95,12 +98,12 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
 
     private void handleAction(int action) {
         switch (action) {
-            case ACTION_PAUSE -> pauseMusic();
-            case ACTION_RESUME -> resumeMusic();
+            case ACTION_PAUSE -> pauseSong();
+            case ACTION_RESUME -> resumeSong();
         }
     }
 
-    private void resumeMusic() {
+    private void resumeSong() {
         if (mediaPlayer != null && !isPlaying) {
             mediaPlayer.start();
             isPlaying = true;
@@ -109,7 +112,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         }
     }
 
-    private void pauseMusic() {
+    private void pauseSong() {
         if (mediaPlayer != null && isPlaying) {
             mediaPlayer.pause();
             isPlaying = false;
@@ -130,24 +133,21 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
                         .setContentTitle(song.getSongName())
                         .setContentText(song.getArtistName())
                         .setLargeIcon(bitmap)
+                        .addAction(R.drawable.ic_skip_previous, "Previous", null)
                         .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                                 .setShowActionsInCompactView(0, 1, 2)
                                 .setMediaSession(mediaSessionCompat.getSessionToken())
                         );
                 if (isPlaying) {
-                    notificationBuilder
-                            .addAction(R.drawable.ic_skip_previous, "Previous", null)
-                            .addAction(R.drawable.ic_pause, "Pause", playPausePendingIntent(MusicPlayerService.this, ACTION_PAUSE))
-                            .addAction(R.drawable.ic_skip_next, "Next", null);
+                    notificationBuilder.addAction(R.drawable.ic_pause, "Pause",
+                            playPausePendingIntent(MusicPlayerService.this, ACTION_PAUSE));
                 } else {
-                    notificationBuilder
-                            .addAction(R.drawable.ic_skip_previous, "Previous", null)
-                            .addAction(R.drawable.ic_play_arrow, "Play", playPausePendingIntent(MusicPlayerService.this, ACTION_RESUME))
-                            .addAction(R.drawable.ic_skip_next, "Next", null);
+                    notificationBuilder.addAction(R.drawable.ic_play_arrow, "Play",
+                            playPausePendingIntent(MusicPlayerService.this, ACTION_RESUME));
                 }
+                notificationBuilder.addAction(R.drawable.ic_skip_next, "Next", null);
 
                 Notification notification = notificationBuilder.build();
-
                 startForeground(1, notification);
             }
 
@@ -163,7 +163,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         };
         Picasso.get().load(song.getSongImageUrl()).into(target);
     }
-
     /*private void sendNotification(Song song) {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);

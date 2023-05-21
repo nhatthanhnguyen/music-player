@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.squareup.picasso.Picasso;
+
 import java.util.List;
 
 public class SongAdapter extends RecyclerView.Adapter<SongViewHolder> {
@@ -33,6 +35,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongViewHolder> {
         Song song = songs.get(position);
         holder.textViewSongName.setText(song.getSongName());
         holder.textViewArtistName.setText(song.getArtistName());
+        Picasso.get().load(song.getSongImageUrl()).into(holder.imageViewSong);
         if (song.isSelected())
             holder.textViewSongName.setTextColor(holder.itemView.getContext().getColor(R.color.green));
         else
