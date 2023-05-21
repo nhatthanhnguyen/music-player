@@ -1,34 +1,42 @@
 package com.thanh.musicplayer;
 
+import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_MUSIC_ACTION;
+import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_SONG;
+import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_STATUS_PLAYER;
 import static com.thanh.musicplayer.ApplicationConstants.CHANNEL_ID;
-import static com.thanh.musicplayer.ApplicationConstants.INTENT_BUNDLE_SONG;
+import static com.thanh.musicplayer.ApplicationConstants.INTENT_DATA_TO_ACTIVITY;
+import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION;
 
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.widget.RemoteViews;
+import android.support.v4.media.session.MediaSessionCompat;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 public class MusicPlayerService extends Service implements MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener {
-    private static final int ACTION_PAUSE = 1;
-    private static final int ACTION_RESUME = 2;
+    public static final int ACTION_PAUSE = 1;
+    public static final int ACTION_RESUME = 2;
+    public static final int ACTION_START = 3;
     private MediaPlayer mediaPlayer = null;
     private boolean isPlaying;
+    private Song currentSong;
 
     @Override
     public void onCreate() {
@@ -55,12 +63,16 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     public int onStartCommand(Intent intent, int flags, int startId) {
         Bundle bundle = intent.getExtras();
         if (bundle != null) {
-            Song song = (Song) bundle.get(INTENT_BUNDLE_SONG);
+            Song song = (Song) bundle.get(BUNDLE_SONG);
             if (song != null) {
+                currentSong = song;
                 startSong(song);
-                sendNotification(song);
+                sendNotificationMedia(song);
             }
         }
+
+        int action = intent.getIntExtra(INTENT_MUSIC_ACTION, 0);
+        handleAction(action);
 
         return START_NOT_STICKY;
     }
@@ -74,9 +86,17 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
                 mediaPlayer.setDataSource(song.getUrl());
                 mediaPlayer.prepareAsync();
                 isPlaying = true;
+                sendActionToActivity(ACTION_START);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private void handleAction(int action) {
+        switch (action) {
+            case ACTION_PAUSE -> pauseMusic();
+            case ACTION_RESUME -> resumeMusic();
         }
     }
 
@@ -84,6 +104,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         if (mediaPlayer != null && !isPlaying) {
             mediaPlayer.start();
             isPlaying = true;
+            sendNotificationMedia(currentSong);
+            sendActionToActivity(ACTION_START);
         }
     }
 
@@ -91,28 +113,114 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         if (mediaPlayer != null && isPlaying) {
             mediaPlayer.pause();
             isPlaying = false;
+            sendNotificationMedia(currentSong);
+            sendActionToActivity(ACTION_START);
         }
     }
 
-    private void sendNotification(Song song) {
+    private void sendNotificationMedia(Song song) {
+        MediaSessionCompat mediaSessionCompat = new MediaSessionCompat(this, "tag");
+        Target target = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(MusicPlayerService.this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.ic_music_note)
+                        .setSound(null)
+                        .setSubText(song.getArtistName())
+                        .setContentTitle(song.getSongName())
+                        .setContentText(song.getArtistName())
+                        .setLargeIcon(bitmap)
+                        .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                                .setShowActionsInCompactView(0, 1, 2)
+                                .setMediaSession(mediaSessionCompat.getSessionToken())
+                        );
+                if (isPlaying) {
+                    notificationBuilder
+                            .addAction(R.drawable.ic_skip_previous, "Previous", null)
+                            .addAction(R.drawable.ic_pause, "Pause", playPausePendingIntent(MusicPlayerService.this, ACTION_PAUSE))
+                            .addAction(R.drawable.ic_skip_next, "Next", null);
+                } else {
+                    notificationBuilder
+                            .addAction(R.drawable.ic_skip_previous, "Previous", null)
+                            .addAction(R.drawable.ic_play_arrow, "Play", playPausePendingIntent(MusicPlayerService.this, ACTION_RESUME))
+                            .addAction(R.drawable.ic_skip_next, "Next", null);
+                }
+
+                Notification notification = notificationBuilder.build();
+
+                startForeground(1, notification);
+            }
+
+            @Override
+            public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+            }
+        };
+        Picasso.get().load(song.getSongImageUrl()).into(target);
+    }
+
+    /*private void sendNotification(Song song) {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
 
         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.layout_music_notification);
         remoteViews.setTextViewText(R.id.textViewSongName, song.getSongName());
         remoteViews.setTextViewText(R.id.textViewArtistName, song.getArtistName());
         remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_pause);
 
+        if (isPlaying) {
+            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, playPausePendingIntent(this, ACTION_PAUSE));
+            remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_pause);
+        } else {
+            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, playPausePendingIntent(this, ACTION_RESUME));
+            remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_play_arrow);
+        }
+        Target target = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                remoteViews.setImageViewBitmap(R.id.imageViewSong, bitmap);
+                Notification notification = new NotificationCompat.Builder(MusicPlayerService.this, CHANNEL_ID)
+                        .setCustomContentView(remoteViews)
+                        .setSmallIcon(R.drawable.ic_music_note)
+                        .setContentIntent(pendingIntent)
+                        .setSound(null)
+                        .build();
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setCustomContentView(remoteViews)
-                .setSmallIcon(R.drawable.ic_music_note)
-                .setContentIntent(pendingIntent)
-                .setSound(null)
-                .build();
+                startForeground(1, notification);
+            }
 
-        startForeground(1, notification);
+            @Override
+            public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+            }
+        };
+        Picasso.get().load(song.getSongImageUrl()).into(target);
+    }*/
+
+    private PendingIntent playPausePendingIntent(Context context, int action) {
+        Intent intent = new Intent(this, MusicPlayerReceiver.class);
+        intent.putExtra(INTENT_MUSIC_ACTION, action);
+        return PendingIntent.getBroadcast(context.getApplicationContext(), action, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    private void sendActionToActivity(int action) {
+        Intent intent = new Intent(INTENT_DATA_TO_ACTIVITY);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable(BUNDLE_SONG, currentSong);
+        bundle.putBoolean(BUNDLE_STATUS_PLAYER, isPlaying);
+        bundle.putInt(BUNDLE_MUSIC_ACTION, action);
+        intent.putExtras(bundle);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     @Override

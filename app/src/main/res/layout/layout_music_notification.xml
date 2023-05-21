@@ -8,8 +8,8 @@
 
     <ImageView
         android:id="@+id/imageViewSong"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/notification_music_player_image"
+        android:layout_height="@dimen/notification_music_player_image"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_music_note" />
 
@@ -24,12 +24,18 @@
             android:id="@+id/textViewSongName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:maxLines="1"
             android:text="Song Name" />
 
         <TextView
             android:id="@+id/textViewArtistName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:maxLines="1"
             android:text="Artist name"
             android:textColor="@color/gray" />
     </LinearLayout>
