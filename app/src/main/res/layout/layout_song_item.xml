@@ -2,15 +2,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_16"
     android:gravity="center"
     android:orientation="horizontal"
-    android:paddingHorizontal="@dimen/spacing_16"
-    android:paddingTop="@dimen/spacing_16">
+    android:paddingHorizontal="@dimen/spacing_16">
 
     <ImageView
         android:id="@+id/imageViewSong"
-        android:layout_width="@dimen/notification_music_player_image"
-        android:layout_height="@dimen/notification_music_player_image" />
+        android:layout_width="@dimen/item_music_image"
+        android:layout_height="@dimen/item_music_image"
+        android:src="@drawable/ic_music_note" />
 
     <LinearLayout
         android:layout_width="0dp"

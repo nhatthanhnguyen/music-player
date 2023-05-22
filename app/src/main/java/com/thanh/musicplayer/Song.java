@@ -15,5 +15,6 @@ public class Song implements Serializable {
     private String artistName;
     private String url;
     private String songImageUrl;
+    private int length;
     private boolean selected;
 }

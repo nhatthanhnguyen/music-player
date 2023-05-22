@@ -14,18 +14,17 @@
     <LinearLayout
         android:id="@+id/linearLayoutMiniPlayer"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/notification_music_player_height"
+        android:layout_height="@dimen/mini_music_player_height"
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="@dimen/spacing_8"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/spacing_8"
-        android:visibility="gone">
+        android:paddingHorizontal="@dimen/spacing_8">
 
         <ImageView
             android:id="@+id/imageViewSong"
-            android:layout_width="@dimen/notification_music_player_image"
-            android:layout_height="@dimen/notification_music_player_image"
+            android:layout_width="@dimen/mini_music_player_image"
+            android:layout_height="@dimen/mini_music_player_image"
             android:src="@drawable/ic_music_note" />
 
         <LinearLayout

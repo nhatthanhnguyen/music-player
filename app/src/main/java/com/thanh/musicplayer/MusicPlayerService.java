@@ -18,10 +18,13 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
+import android.media.MediaMetadata;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -33,7 +36,8 @@ import com.squareup.picasso.Target;
 
 import java.io.IOException;
 
-public class MusicPlayerService extends Service implements MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener {
+public class MusicPlayerService extends Service implements MediaPlayer.OnErrorListener,
+        MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener {
     public static final int ACTION_PAUSE = 1;
     public static final int ACTION_RESUME = 2;
     public static final int ACTION_START = 3;
@@ -50,6 +54,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mediaPlayer.setOnPreparedListener(this);
         mediaPlayer.setOnErrorListener(this);
+        mediaPlayer.setOnCompletionListener(this);
         mediaPlayer.setAudioAttributes(
                 new AudioAttributes.Builder()
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -176,6 +181,16 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
 
     private void sendNotificationMedia(Song song) {
         MediaSessionCompat mediaSessionCompat = new MediaSessionCompat(this, "tag");
+        mediaSessionCompat.setPlaybackState(new PlaybackStateCompat.Builder()
+                .setState(PlaybackStateCompat.STATE_PLAYING,
+                        mediaPlayer.getCurrentPosition(),
+                        1.0f)
+                .setActions(PlaybackStateCompat.ACTION_SEEK_TO)
+                .build()
+        );
+        mediaSessionCompat.setMetadata(new MediaMetadataCompat.Builder()
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, song.getLength() * 1000L)
+                .build());
         Target target = new Target() {
             @Override
             public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
@@ -253,5 +268,10 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     @Override
     public void onPrepared(MediaPlayer mp) {
         mediaPlayer.start();
+    }
+
+    @Override
+    public void onCompletion(MediaPlayer mp) {
+        nextSong();
     }
 }
