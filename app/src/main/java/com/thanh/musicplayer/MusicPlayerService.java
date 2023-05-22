@@ -160,6 +160,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
                 sendActionToActivity(ACTION_PAUSE);
                 return;
             }
+            currentSong = newSong;
             try {
                 mediaPlayer.reset();
                 mediaPlayer.setDataSource(currentSong.getUrl());
@@ -167,7 +168,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
                 isPlaying = true;
                 sendActionToActivity(ACTION_START);
                 sendNotificationMedia(newSong);
-            } catch (IOException e) {
+            } catch (IOException | IllegalStateException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -217,48 +218,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         };
         Picasso.get().load(song.getSongImageUrl()).into(target);
     }
-    /*private void sendNotification(Song song) {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.layout_music_notification);
-        remoteViews.setTextViewText(R.id.textViewSongName, song.getSongName());
-        remoteViews.setTextViewText(R.id.textViewArtistName, song.getArtistName());
-        remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_pause);
-
-        if (isPlaying) {
-            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, getPendingIntent(this, ACTION_PAUSE));
-            remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_pause);
-        } else {
-            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, getPendingIntent(this, ACTION_RESUME));
-            remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_play_arrow);
-        }
-        Target target = new Target() {
-            @Override
-            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                remoteViews.setImageViewBitmap(R.id.imageViewSong, bitmap);
-                Notification notification = new NotificationCompat.Builder(MusicPlayerService.this, CHANNEL_ID)
-                        .setCustomContentView(remoteViews)
-                        .setSmallIcon(R.drawable.ic_music_note)
-                        .setContentIntent(pendingIntent)
-                        .setSound(null)
-                        .build();
-
-                startForeground(1, notification);
-            }
-
-            @Override
-            public void onBitmapFailed(Exception e, Drawable errorDrawable) {
-
-            }
-
-            @Override
-            public void onPrepareLoad(Drawable placeHolderDrawable) {
-
-            }
-        };
-        Picasso.get().load(song.getSongImageUrl()).into(target);
-    }*/
 
     private PendingIntent actionPendingIntent(Context context, int action) {
         Intent intent = new Intent(this, MusicPlayerReceiver.class);

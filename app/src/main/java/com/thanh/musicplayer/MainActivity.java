@@ -4,19 +4,19 @@ import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_MUSIC_ACTION;
 import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_SONG;
 import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_STATUS_PLAYER;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_DATA_TO_ACTIVITY;
-import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION;
+import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION_TO_SERVICE;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_NEXT;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_PAUSE;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_PREV;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_RESUME;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_START;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -30,6 +30,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity implements OnItemClickedListener {
     private RecyclerView recyclerView;
     private LinearLayout linearLayoutMiniPlayer;
@@ -37,9 +40,11 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
     private TextView textViewSongName;
     private TextView textViewArtistName;
     private ImageButton buttonPlayPause;
+    private List<Song> songs = new ArrayList<>();
+    private SongAdapter songAdapter;
     private Song currentSong;
     private boolean isPlaying;
-    private Intent intent;
+    private Intent musicIntent;
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -50,10 +55,18 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
             currentSong = (Song) bundle.get(BUNDLE_SONG);
             isPlaying = (boolean) bundle.get(BUNDLE_STATUS_PLAYER);
             int action = (int) bundle.get(BUNDLE_MUSIC_ACTION);
-            Log.d("Main Activity", String.format("currentSong = %s, isPlaying = %s, action = %s", currentSong, isPlaying, action));
+            updateRecyclerView(currentSong);
             handleLayoutMusic(action);
         }
     };
+
+    @SuppressLint("NotifyDataSetChanged")
+    private void updateRecyclerView(Song currentSong) {
+        for (Song song : songs) {
+            song.setSelected(song.getId().equals(currentSong.getId()));
+        }
+        songAdapter.notifyDataSetChanged();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,7 +76,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
 
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new SongAdapter(ApiSongs.songs, this));
+        fetchSongs();
+        songAdapter = new SongAdapter(songs, this);
+        recyclerView.setAdapter(songAdapter);
 
         linearLayoutMiniPlayer = findViewById(R.id.linearLayoutMiniPlayer);
         textViewSongName = findViewById(R.id.textViewSongName);
@@ -72,19 +87,23 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
         imageViewSong = findViewById(R.id.imageViewSong);
     }
 
+    private void fetchSongs() {
+        songs = ApiSongs.songs;
+    }
+
     @Override
     public void onSongItemClickedListener(Song song) {
-        intent = new Intent(this, MusicPlayerService.class);
+        musicIntent = new Intent(this, MusicPlayerService.class);
         Bundle bundle = new Bundle();
         bundle.putSerializable(BUNDLE_SONG, song);
-        intent.putExtras(bundle);
-        startService(intent);
+        musicIntent.putExtras(bundle);
+        startService(musicIntent);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopService(intent);
+        stopService(musicIntent);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
@@ -127,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
 
     private void sendActionToService(int action) {
         Intent intent = new Intent(this, MusicPlayerService.class);
-        intent.putExtra(INTENT_MUSIC_ACTION, action);
+        intent.putExtra(INTENT_MUSIC_ACTION_TO_SERVICE, action);
         startService(intent);
     }
 }
