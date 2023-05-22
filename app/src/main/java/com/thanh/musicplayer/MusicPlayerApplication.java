@@ -19,7 +19,7 @@ public class MusicPlayerApplication extends Application {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Music Service Channel",
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_NONE
             );
             channel.setSound(null, null);
             NotificationManager manager = getSystemService(NotificationManager.class);

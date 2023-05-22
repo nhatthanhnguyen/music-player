@@ -5,7 +5,9 @@ import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_SONG;
 import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_STATUS_PLAYER;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_DATA_TO_ACTIVITY;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION;
+import static com.thanh.musicplayer.MusicPlayerService.ACTION_NEXT;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_PAUSE;
+import static com.thanh.musicplayer.MusicPlayerService.ACTION_PREV;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_RESUME;
 import static com.thanh.musicplayer.MusicPlayerService.ACTION_START;
 
@@ -14,6 +16,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -47,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
             currentSong = (Song) bundle.get(BUNDLE_SONG);
             isPlaying = (boolean) bundle.get(BUNDLE_STATUS_PLAYER);
             int action = (int) bundle.get(BUNDLE_MUSIC_ACTION);
+            Log.d("Main Activity", String.format("currentSong = %s, isPlaying = %s, action = %s", currentSong, isPlaying, action));
             handleLayoutMusic(action);
         }
     };
@@ -92,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
                 setStatusButtonPlayPause();
             }
             case ACTION_RESUME, ACTION_PAUSE -> setStatusButtonPlayPause();
+            case ACTION_NEXT, ACTION_PREV -> showInformationForSong();
         }
     }
 

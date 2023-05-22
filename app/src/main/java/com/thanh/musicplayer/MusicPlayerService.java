@@ -6,6 +6,7 @@ import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_STATUS_PLAYER;
 import static com.thanh.musicplayer.ApplicationConstants.CHANNEL_ID;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_DATA_TO_ACTIVITY;
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION;
+import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION_TO_SERVICE;
 import static com.thanh.musicplayer.ApplicationConstants.LOG_MUSIC_PLAYER;
 
 import android.app.Notification;
@@ -36,6 +37,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     public static final int ACTION_PAUSE = 1;
     public static final int ACTION_RESUME = 2;
     public static final int ACTION_START = 3;
+    public static final int ACTION_NEXT = 4;
+    public static final int ACTION_PREV = 5;
     private MediaPlayer mediaPlayer = null;
     private boolean isPlaying;
     private Song currentSong;
@@ -73,7 +76,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
             }
         }
 
-        int action = intent.getIntExtra(INTENT_MUSIC_ACTION, 0);
+        int action = intent.getIntExtra(INTENT_MUSIC_ACTION_TO_SERVICE, 0);
         handleAction(action);
 
         return START_NOT_STICKY;
@@ -100,6 +103,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         switch (action) {
             case ACTION_PAUSE -> pauseSong();
             case ACTION_RESUME -> resumeSong();
+            case ACTION_NEXT -> nextSong();
+            case ACTION_PREV -> prevSong();
         }
     }
 
@@ -121,6 +126,53 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         }
     }
 
+    private void nextSong() {
+        if (mediaPlayer != null) {
+            mediaPlayer.pause();
+            Song newSong = ApiSongs.skipToNext(currentSong.getId());
+            if (newSong == null) {
+                isPlaying = false;
+                sendNotificationMedia(currentSong);
+                sendActionToActivity(ACTION_PAUSE);
+                return;
+            }
+            currentSong = newSong;
+            try {
+                mediaPlayer.reset();
+                mediaPlayer.setDataSource(currentSong.getUrl());
+                mediaPlayer.prepareAsync();
+                isPlaying = true;
+                sendActionToActivity(ACTION_START);
+                sendNotificationMedia(newSong);
+            } catch (IOException | IllegalStateException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void prevSong() {
+        if (mediaPlayer != null) {
+            mediaPlayer.pause();
+            Song newSong = ApiSongs.skipToPrevious(currentSong.getId());
+            if (newSong == null) {
+                isPlaying = false;
+                sendNotificationMedia(currentSong);
+                sendActionToActivity(ACTION_PAUSE);
+                return;
+            }
+            try {
+                mediaPlayer.reset();
+                mediaPlayer.setDataSource(currentSong.getUrl());
+                mediaPlayer.prepareAsync();
+                isPlaying = true;
+                sendActionToActivity(ACTION_START);
+                sendNotificationMedia(newSong);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     private void sendNotificationMedia(Song song) {
         MediaSessionCompat mediaSessionCompat = new MediaSessionCompat(this, "tag");
         Target target = new Target() {
@@ -133,19 +185,21 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
                         .setContentTitle(song.getSongName())
                         .setContentText(song.getArtistName())
                         .setLargeIcon(bitmap)
-                        .addAction(R.drawable.ic_skip_previous, "Previous", null)
+                        .addAction(R.drawable.ic_skip_previous, "Previous",
+                                actionPendingIntent(MusicPlayerService.this, ACTION_PREV))
                         .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                                 .setShowActionsInCompactView(0, 1, 2)
                                 .setMediaSession(mediaSessionCompat.getSessionToken())
                         );
                 if (isPlaying) {
                     notificationBuilder.addAction(R.drawable.ic_pause, "Pause",
-                            playPausePendingIntent(MusicPlayerService.this, ACTION_PAUSE));
+                            actionPendingIntent(MusicPlayerService.this, ACTION_PAUSE));
                 } else {
                     notificationBuilder.addAction(R.drawable.ic_play_arrow, "Play",
-                            playPausePendingIntent(MusicPlayerService.this, ACTION_RESUME));
+                            actionPendingIntent(MusicPlayerService.this, ACTION_RESUME));
                 }
-                notificationBuilder.addAction(R.drawable.ic_skip_next, "Next", null);
+                notificationBuilder.addAction(R.drawable.ic_skip_next, "Next",
+                        actionPendingIntent(MusicPlayerService.this, ACTION_NEXT));
 
                 Notification notification = notificationBuilder.build();
                 startForeground(1, notification);
@@ -173,10 +227,10 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_pause);
 
         if (isPlaying) {
-            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, playPausePendingIntent(this, ACTION_PAUSE));
+            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, getPendingIntent(this, ACTION_PAUSE));
             remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_pause);
         } else {
-            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, playPausePendingIntent(this, ACTION_RESUME));
+            remoteViews.setOnClickPendingIntent(R.id.buttonPlayPause, getPendingIntent(this, ACTION_RESUME));
             remoteViews.setImageViewResource(R.id.buttonPlayPause, R.drawable.ic_play_arrow);
         }
         Target target = new Target() {
@@ -206,7 +260,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
         Picasso.get().load(song.getSongImageUrl()).into(target);
     }*/
 
-    private PendingIntent playPausePendingIntent(Context context, int action) {
+    private PendingIntent actionPendingIntent(Context context, int action) {
         Intent intent = new Intent(this, MusicPlayerReceiver.class);
         intent.putExtra(INTENT_MUSIC_ACTION, action);
         return PendingIntent.getBroadcast(context.getApplicationContext(), action, intent, PendingIntent.FLAG_UPDATE_CURRENT);

@@ -1,6 +1,7 @@
 package com.thanh.musicplayer;
 
 import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION;
+import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION_TO_SERVICE;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,7 +13,7 @@ public class MusicPlayerReceiver extends BroadcastReceiver {
         int action = intent.getIntExtra(INTENT_MUSIC_ACTION, 0);
 
         Intent intentService = new Intent(context, MusicPlayerService.class);
-        intentService.putExtra(INTENT_MUSIC_ACTION, action);
+        intentService.putExtra(INTENT_MUSIC_ACTION_TO_SERVICE, action);
 
         context.startService(intentService);
     }
