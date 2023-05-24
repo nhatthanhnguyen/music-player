@@ -16,6 +16,7 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Binder;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -36,6 +37,11 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     public boolean isShuffle;
     public int repeatMode = 0;
     public Song currentSong;
+    public boolean min5 = false;
+    public boolean min10 = false;
+    public boolean min15 = false;
+
+    public CountDownTimer countDownTimer;
 
     public class MusicBinder extends Binder {
         MusicPlayerService getService() {
@@ -124,6 +130,41 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
             new Handler(Looper.getMainLooper()).postDelayed(runnable, 1000);
         };
         new Handler(Looper.getMainLooper()).postDelayed(runnable, 0);
+    }
+
+    public void startTimer() {
+        long milliseconds = 0;
+        if (MainActivity.musicPlayerService.min5) milliseconds = 5000;
+        if (MainActivity.musicPlayerService.min10) milliseconds = 10000;
+        if (MainActivity.musicPlayerService.min15) milliseconds = 15000;
+        countDownTimer = new CountDownTimer(milliseconds, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+            }
+
+            @Override
+            public void onFinish() {
+                if (min5 || min10 || min15) {
+                    pauseSong();
+                    if (PlayerActivity.isBound) {
+                        PlayerActivity.buttonTimer.setImageResource(R.drawable.ic_alarm);
+                        min5 = false;
+                        min10 = false;
+                        min15 = false;
+                    }
+                }
+                countDownTimer = null;
+            }
+        }.start();
+
+    }
+
+    private void pauseSong() {
+        mediaPlayer.pause();
+        isPlaying = false;
+        sendNotificationMedia(currentSong);
+        MainActivity.buttonPlayPause.setImageResource(R.drawable.ic_play_arrow);
+        PlayerActivity.buttonPlayPause.setImageResource(R.drawable.ic_play_circle);
     }
 
     @Override

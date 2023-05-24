@@ -22,22 +22,47 @@
         android:layout_gravity="center"
         android:layout_marginTop="@dimen/spacing_16" />
 
-    <TextView
-        android:id="@+id/textViewSongName"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/spacing_16"
         android:layout_marginTop="@dimen/spacing_16"
-        android:text="Song name"
-        android:textSize="16sp" />
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_16">
 
-    <TextView
-        android:id="@+id/textViewArtistName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/spacing_16"
-        android:text="Artist name"
-        android:textColor="@color/gray" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textViewSongName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:maxLines="1"
+                android:text="Song name"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/textViewArtistName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:text="Artist name"
+                android:textColor="@color/gray" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/buttonTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_alarm" />
+    </LinearLayout>
 
     <androidx.appcompat.widget.AppCompatSeekBar
         android:id="@+id/seekBar"
@@ -75,6 +100,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_16"
+        android:gravity="center"
         android:orientation="horizontal"
         android:paddingHorizontal="@dimen/spacing_16">
 

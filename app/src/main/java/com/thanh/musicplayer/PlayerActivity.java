@@ -12,10 +12,12 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatSeekBar;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
@@ -29,6 +31,7 @@ public class PlayerActivity extends AppCompatActivity {
     public static TextView textViewSongName, textViewArtistName;
     public static AppCompatSeekBar appCompatSeekBar;
     public static TextView textViewCurrentPosition, textViewMax;
+    public static ImageButton buttonTimer;
     public static ImageButton buttonShuffle, buttonPrevious, buttonPlayPause, buttonNext, buttonRepeat;
 
     @Override
@@ -88,6 +91,14 @@ public class PlayerActivity extends AppCompatActivity {
         buttonRepeat.setOnClickListener(v -> {
             buttonRepeatClicked();
         });
+        buttonTimer.setOnClickListener(v -> {
+            if (MainActivity.musicPlayerService.min5 ||
+                    MainActivity.musicPlayerService.min10 ||
+                    MainActivity.musicPlayerService.min15)
+                buttonTimerSetOrNotSetTimerClicked();
+            else
+                buttonTimerSetTimerClicked();
+        });
     }
 
     private void setControl() {
@@ -103,6 +114,7 @@ public class PlayerActivity extends AppCompatActivity {
         buttonPlayPause = findViewById(R.id.buttonPlayPause);
         buttonNext = findViewById(R.id.buttonNext);
         buttonRepeat = findViewById(R.id.buttonRepeat);
+        buttonTimer = findViewById(R.id.buttonTimer);
     }
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
@@ -129,6 +141,14 @@ public class PlayerActivity extends AppCompatActivity {
                 case 0 -> buttonRepeat.setImageResource(R.drawable.ic_repeat);
                 case 1 -> buttonRepeat.setImageResource(R.drawable.ic_repeat_1);
                 case 2 -> buttonRepeat.setImageResource(R.drawable.ic_repeat_2);
+            }
+
+            if (MainActivity.musicPlayerService.min5 ||
+                    MainActivity.musicPlayerService.min10 ||
+                    MainActivity.musicPlayerService.min15) {
+                buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            } else {
+                buttonTimer.setImageResource(R.drawable.ic_alarm);
             }
             textViewMax.setText(Utils.formatTime(musicPlayerService.currentSong.getLength() * 1000));
         }
@@ -264,5 +284,79 @@ public class PlayerActivity extends AppCompatActivity {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void buttonTimerSetTimerClicked() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        dialog.setContentView(R.layout.layout_bottom_timer_set);
+        dialog.show();
+        dialog.findViewById(R.id.min_5).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Music will stop after 5 minutes", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            MainActivity.musicPlayerService.min5 = true;
+            MainActivity.musicPlayerService.min10 = false;
+            MainActivity.musicPlayerService.min15 = false;
+            MainActivity.musicPlayerService.startTimer();
+            dialog.dismiss();
+        });
+        dialog.findViewById(R.id.min_10).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Music will stop after 10 minutes", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            MainActivity.musicPlayerService.min5 = false;
+            MainActivity.musicPlayerService.min10 = true;
+            MainActivity.musicPlayerService.min15 = false;
+            MainActivity.musicPlayerService.startTimer();
+            dialog.dismiss();
+        });
+        dialog.findViewById(R.id.min_15).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Music will stop after 15 minutes", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            MainActivity.musicPlayerService.min5 = false;
+            MainActivity.musicPlayerService.min10 = false;
+            MainActivity.musicPlayerService.min15 = true;
+            MainActivity.musicPlayerService.startTimer();
+            dialog.dismiss();
+        });
+    }
+
+    private void buttonTimerSetOrNotSetTimerClicked() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        dialog.setContentView(R.layout.layout_bottom_timer_set_or_not);
+        dialog.show();
+        dialog.findViewById(R.id.min_5).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Music will stop after 5 minutes", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            MainActivity.musicPlayerService.min5 = true;
+            MainActivity.musicPlayerService.min10 = false;
+            MainActivity.musicPlayerService.min15 = false;
+            MainActivity.musicPlayerService.startTimer();
+            dialog.dismiss();
+        });
+        dialog.findViewById(R.id.min_10).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Music will stop after 10 minutes", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            MainActivity.musicPlayerService.min5 = false;
+            MainActivity.musicPlayerService.min10 = true;
+            MainActivity.musicPlayerService.min15 = false;
+            MainActivity.musicPlayerService.startTimer();
+            dialog.dismiss();
+        });
+        dialog.findViewById(R.id.min_15).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Music will stop after 15 minutes", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm_on);
+            MainActivity.musicPlayerService.min5 = false;
+            MainActivity.musicPlayerService.min10 = false;
+            MainActivity.musicPlayerService.min15 = true;
+            MainActivity.musicPlayerService.startTimer();
+            dialog.dismiss();
+        });
+        dialog.findViewById(R.id.cancel).setOnClickListener(v -> {
+            Toast.makeText(getBaseContext(), "Turn off the timer", Toast.LENGTH_SHORT).show();
+            buttonTimer.setImageResource(R.drawable.ic_alarm);
+            MainActivity.musicPlayerService.min5 = false;
+            MainActivity.musicPlayerService.min10 = false;
+            MainActivity.musicPlayerService.min15 = false;
+            dialog.dismiss();
+        });
     }
 }
