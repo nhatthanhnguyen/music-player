@@ -1,67 +1,46 @@
 package com.thanh.musicplayer;
 
-import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_MUSIC_ACTION;
-import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_SONG;
-import static com.thanh.musicplayer.ApplicationConstants.BUNDLE_STATUS_PLAYER;
-import static com.thanh.musicplayer.ApplicationConstants.INTENT_DATA_TO_ACTIVITY;
-import static com.thanh.musicplayer.ApplicationConstants.INTENT_MUSIC_ACTION_TO_SERVICE;
-import static com.thanh.musicplayer.MusicPlayerService.ACTION_NEXT;
-import static com.thanh.musicplayer.MusicPlayerService.ACTION_PAUSE;
-import static com.thanh.musicplayer.MusicPlayerService.ACTION_PREV;
-import static com.thanh.musicplayer.MusicPlayerService.ACTION_RESUME;
-import static com.thanh.musicplayer.MusicPlayerService.ACTION_START;
-
 import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.content.ComponentName;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.appcompat.widget.AppCompatSeekBar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnItemClickedListener {
-    private RecyclerView recyclerView;
-    private LinearLayout linearLayoutMiniPlayer;
-    private ImageView imageViewSong;
-    private TextView textViewSongName;
-    private TextView textViewArtistName;
-    private ImageButton buttonPlayPause;
-    private List<Song> songs = new ArrayList<>();
-    private SongAdapter songAdapter;
-    private Song currentSong;
-    private boolean isPlaying;
-    private Intent musicIntent;
-    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Bundle bundle = intent.getExtras();
-            if (bundle == null) {
-                return;
-            }
-            currentSong = (Song) bundle.get(BUNDLE_SONG);
-            isPlaying = (boolean) bundle.get(BUNDLE_STATUS_PLAYER);
-            int action = (int) bundle.get(BUNDLE_MUSIC_ACTION);
-            updateRecyclerView(currentSong);
-            handleLayoutMusic(action);
-        }
-    };
+public class MainActivity extends AppCompatActivity implements OnItemClickedListener, MediaPlayer.OnCompletionListener {
+    public static RecyclerView recyclerView;
+    public static LinearLayout linearLayoutMiniPlayer;
+    public static ImageView imageViewSong;
+    public static TextView textViewSongName;
+    public static TextView textViewArtistName;
+    public static ImageButton buttonPlayPause;
+    public static AppCompatSeekBar appCompatSeekBar;
+    public static List<Song> songs = new ArrayList<>();
+    public static SongAdapter songAdapter;
+    Intent musicIntent;
+    public static MusicPlayerService musicPlayerService;
+    boolean isBound;
 
     @SuppressLint("NotifyDataSetChanged")
-    private void updateRecyclerView(Song currentSong) {
+    public static void updateRecyclerView(Song currentSong) {
         for (Song song : songs) {
             song.setSelected(song.getId().equals(currentSong.getId()));
         }
@@ -72,7 +51,9 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, new IntentFilter(INTENT_DATA_TO_ACTIVITY));
+        musicIntent = new Intent(this, MusicPlayerService.class);
+        startService(musicIntent);
+        bindService(musicIntent, serviceConnection, BIND_AUTO_CREATE);
 
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -85,6 +66,39 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
         textViewArtistName = findViewById(R.id.textViewArtistName);
         buttonPlayPause = findViewById(R.id.buttonPlayPause);
         imageViewSong = findViewById(R.id.imageViewSong);
+        appCompatSeekBar = findViewById(R.id.seekBar);
+        appCompatSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    musicPlayerService.mediaPlayer.seekTo(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        buttonPlayPause.setOnClickListener(v -> {
+            if (musicPlayerService.isPlaying) {
+                buttonPlayPause.setImageResource(R.drawable.ic_play_arrow);
+                musicPlayerService.mediaPlayer.pause();
+                musicPlayerService.isPlaying = false;
+                musicPlayerService.sendNotificationMedia(musicPlayerService.currentSong);
+            } else {
+                buttonPlayPause.setImageResource(R.drawable.ic_pause);
+                musicPlayerService.mediaPlayer.start();
+                musicPlayerService.isPlaying = true;
+                musicPlayerService.sendNotificationMedia(musicPlayerService.currentSong);
+            }
+        });
     }
 
     private void fetchSongs() {
@@ -93,60 +107,81 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
 
     @Override
     public void onSongItemClickedListener(Song song) {
-        musicIntent = new Intent(this, MusicPlayerService.class);
-        Bundle bundle = new Bundle();
-        bundle.putSerializable(BUNDLE_SONG, song);
-        musicIntent.putExtras(bundle);
-        startService(musicIntent);
+        try {
+            linearLayoutMiniPlayer.setVisibility(View.VISIBLE);
+            textViewSongName.setText(song.getSongName());
+            textViewArtistName.setText(song.getArtistName());
+            Picasso.get().load(song.getSongImageUrl()).into(imageViewSong);
+            musicPlayerService.mediaPlayer.reset();
+            musicPlayerService.mediaPlayer.setDataSource(song.getUrl());
+            musicPlayerService.mediaPlayer.prepareAsync();
+            musicPlayerService.isPlaying = true;
+            musicPlayerService.currentSong = song;
+            musicPlayerService.sendNotificationMedia(song);
+            appCompatSeekBar.setProgress(0);
+            appCompatSeekBar.setMax(song.getLength() * 1000);
+            updateRecyclerView(song);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         stopService(musicIntent);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
+        unbindService(serviceConnection);
     }
 
-    private void handleLayoutMusic(int action) {
-        switch (action) {
-            case ACTION_START -> {
-                linearLayoutMiniPlayer.setVisibility(View.VISIBLE);
-                showInformationForSong();
-                setStatusButtonPlayPause();
-            }
-            case ACTION_RESUME, ACTION_PAUSE -> setStatusButtonPlayPause();
-            case ACTION_NEXT, ACTION_PREV -> showInformationForSong();
+    @Override
+    protected void onStop() {
+        super.onStop();
+        stopService(musicIntent);
+        unbindService(serviceConnection);
+    }
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicPlayerService.MusicBinder binder = (MusicPlayerService.MusicBinder) service;
+            musicPlayerService = binder.getService();
+            musicPlayerService.seekBarSetup();
+            musicPlayerService.mediaPlayer.setOnCompletionListener(MainActivity.this);
+            isBound = true;
         }
-    }
 
-    private void showInformationForSong() {
-        if (currentSong == null) {
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBound = false;
+        }
+    };
+
+    @Override
+    public void onCompletion(MediaPlayer mp) {
+        musicPlayerService.mediaPlayer.pause();
+        Song newSong = ApiSongs.skipToNext(musicPlayerService.currentSong.getId());
+        if (newSong == null) {
+            musicPlayerService.isPlaying = false;
+            buttonPlayPause.setImageResource(R.drawable.ic_play_arrow);
+            musicPlayerService.sendNotificationMedia(musicPlayerService.currentSong);
             return;
         }
-        Picasso.get().load(currentSong.getSongImageUrl()).into(imageViewSong);
-        textViewSongName.setText(currentSong.getSongName());
-        textViewArtistName.setText(currentSong.getArtistName());
-
-        buttonPlayPause.setOnClickListener(v -> {
-            if (isPlaying) {
-                sendActionToService(ACTION_PAUSE);
-            } else {
-                sendActionToService(ACTION_RESUME);
-            }
-        });
-    }
-
-    private void setStatusButtonPlayPause() {
-        if (isPlaying) {
+        try {
+            linearLayoutMiniPlayer.setVisibility(View.VISIBLE);
+            textViewSongName.setText(newSong.getSongName());
+            textViewArtistName.setText(newSong.getArtistName());
             buttonPlayPause.setImageResource(R.drawable.ic_pause);
-        } else {
-            buttonPlayPause.setImageResource(R.drawable.ic_play_arrow);
-        }
-    }
+            Picasso.get().load(newSong.getSongImageUrl()).into(MainActivity.imageViewSong);
 
-    private void sendActionToService(int action) {
-        Intent intent = new Intent(this, MusicPlayerService.class);
-        intent.putExtra(INTENT_MUSIC_ACTION_TO_SERVICE, action);
-        startService(intent);
+            musicPlayerService.mediaPlayer.reset();
+            musicPlayerService.mediaPlayer.setDataSource(newSong.getUrl());
+            musicPlayerService.mediaPlayer.prepareAsync();
+            musicPlayerService.isPlaying = true;
+            musicPlayerService.sendNotificationMedia(newSong);
+            musicPlayerService.currentSong = newSong;
+            updateRecyclerView(newSong);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
