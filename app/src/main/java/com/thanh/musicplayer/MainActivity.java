@@ -1,5 +1,7 @@
 package com.thanh.musicplayer;
 
+import static com.thanh.musicplayer.MusicPlayerApplication.OBJECT_SONG;
+
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -86,17 +88,31 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
             }
         });
 
+        linearLayoutMiniPlayer.setOnClickListener(v -> {
+            Intent intent = new Intent(this, PlayerActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable(OBJECT_SONG, musicPlayerService.currentSong);
+            intent.putExtras(bundle);
+            startActivity(intent);
+        });
+
         buttonPlayPause.setOnClickListener(v -> {
             if (musicPlayerService.isPlaying) {
                 buttonPlayPause.setImageResource(R.drawable.ic_play_arrow);
                 musicPlayerService.mediaPlayer.pause();
                 musicPlayerService.isPlaying = false;
                 musicPlayerService.sendNotificationMedia(musicPlayerService.currentSong);
+                if (PlayerActivity.isBound) {
+                    PlayerActivity.buttonPlayPause.setImageResource(R.drawable.ic_play_circle);
+                }
             } else {
                 buttonPlayPause.setImageResource(R.drawable.ic_pause);
                 musicPlayerService.mediaPlayer.start();
                 musicPlayerService.isPlaying = true;
                 musicPlayerService.sendNotificationMedia(musicPlayerService.currentSong);
+                if (PlayerActivity.isBound) {
+                    PlayerActivity.buttonPlayPause.setImageResource(R.drawable.ic_pause_circle);
+                }
             }
         });
     }
@@ -133,12 +149,13 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
         unbindService(serviceConnection);
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        stopService(musicIntent);
-        unbindService(serviceConnection);
-    }
+//    @Override
+//    protected void onStop() {
+//        Log.d("Main Activity", "Stoppppppppppppppppppppp");
+//        super.onStop();
+//        stopService(musicIntent);
+//        unbindService(serviceConnection);
+//    }
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -159,7 +176,14 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
     @Override
     public void onCompletion(MediaPlayer mp) {
         musicPlayerService.mediaPlayer.pause();
-        Song newSong = ApiSongs.skipToNext(musicPlayerService.currentSong.getId());
+        Song newSong;
+        if (musicPlayerService.isShuffle)
+            newSong = ApiSongs.skipShuffle();
+        else
+            newSong = ApiSongs.skipToNext(musicPlayerService.currentSong.getId(), musicPlayerService.repeatMode);
+        if (musicPlayerService.repeatMode == 2) {
+            newSong = musicPlayerService.currentSong;
+        }
         if (newSong == null) {
             musicPlayerService.isPlaying = false;
             buttonPlayPause.setImageResource(R.drawable.ic_play_arrow);
@@ -180,6 +204,14 @@ public class MainActivity extends AppCompatActivity implements OnItemClickedList
             musicPlayerService.sendNotificationMedia(newSong);
             musicPlayerService.currentSong = newSong;
             updateRecyclerView(newSong);
+            if (PlayerActivity.isBound) {
+                Picasso.get().load(newSong.getSongImageUrl()).into(PlayerActivity.imageViewSong);
+                PlayerActivity.textViewSongName.setText(newSong.getSongName());
+                PlayerActivity.textViewArtistName.setText(newSong.getArtistName());
+                PlayerActivity.appCompatSeekBar.setMax(newSong.getLength() * 1000);
+                PlayerActivity.textViewMax.setText(Utils.formatTime(newSong.getLength() * 1000));
+                PlayerActivity.textViewCurrentPosition.setText(Utils.formatTime(0));
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

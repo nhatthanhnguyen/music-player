@@ -33,6 +33,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     private Runnable runnable;
     public MediaPlayer mediaPlayer = null;
     public boolean isPlaying;
+    public boolean isShuffle;
+    public int repeatMode = 0;
     public Song currentSong;
 
     public class MusicBinder extends Binder {
@@ -115,6 +117,10 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     public void seekBarSetup() {
         runnable = () -> {
             MainActivity.appCompatSeekBar.setProgress(mediaPlayer.getCurrentPosition());
+            if (PlayerActivity.isBound) {
+                PlayerActivity.textViewCurrentPosition.setText(Utils.formatTime(mediaPlayer.getCurrentPosition()));
+                PlayerActivity.appCompatSeekBar.setProgress(mediaPlayer.getCurrentPosition());
+            }
             new Handler(Looper.getMainLooper()).postDelayed(runnable, 1000);
         };
         new Handler(Looper.getMainLooper()).postDelayed(runnable, 0);

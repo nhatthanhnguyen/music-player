@@ -1,17 +1,21 @@
 package com.thanh.musicplayer;
 
+import java.util.Random;
+
 public class Utils {
-    public static String secToTime(int sec) {
-        int second = sec % 60;
-        int minute = sec / 60;
-        if (minute >= 60) {
-            int hour = minute / 60;
-            minute %= 60;
-            return String.format("%s:%s:%s", hour < 10 ? "0" + hour : hour,
-                    minute < 10 ? "0" + minute : minute,
-                    second < 10 ? "0" + second : second);
+    public static String formatTime(int milliseconds) {
+        long seconds = (milliseconds / 1000) % 60;
+        long minutes = (milliseconds / (1000 * 60)) % 60;
+        long hours = (milliseconds / (1000 * 60 * 60)) % 24;
+
+        if (hours == 0) {
+            return String.format("%02d:%02d", minutes, seconds);
         }
-        return String.format("%s:%s", minute < 10 ? "0" + minute : minute,
-                second < 10 ? "0" + second : second);
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    public static int generateRandomNumberInRange(int n) {
+        Random random = new Random();
+        return random.nextInt(n);
     }
 }

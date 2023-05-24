@@ -20,6 +20,9 @@
         android:theme="@style/Theme.MusicPlayer"
         tools:targetApi="31">
         <activity
+            android:name=".PlayerActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
@@ -28,7 +31,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <receiver android:name=".MusicPlayerReceiver" android:enabled="true" />
+
+        <receiver
+            android:name=".MusicPlayerReceiver"
+            android:enabled="true" />
+
         <service android:name=".MusicPlayerService" />
     </application>
 

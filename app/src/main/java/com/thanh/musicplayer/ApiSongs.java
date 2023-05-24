@@ -26,12 +26,18 @@ public class ApiSongs {
         }
     }
 
-    public static Song skipToNext(String id) {
+    public static Song skipToNext(String id, int repeatMode) {
         int i;
         for (i = 0; i < songs.size(); ++i) {
             if (songs.get(i).getId().equals(id)) {
                 break;
             }
+        }
+        if (repeatMode == 1) {
+            if (i == songs.size() - 1) {
+                return songs.get(0);
+            }
+            return songs.get(i + 1);
         }
         if (i == songs.size() - 1) {
             return null;
@@ -39,16 +45,27 @@ public class ApiSongs {
         return songs.get(i + 1);
     }
 
-    public static Song skipToPrevious(String id) {
+    public static Song skipToPrevious(String id, int repeatMode) {
         int i;
         for (i = 0; i < songs.size(); ++i) {
             if (songs.get(i).getId().equals(id)) {
                 break;
             }
         }
+        if (repeatMode == 1) {
+            if (i == 0) {
+                return songs.get(songs.size() - 1);
+            }
+            return songs.get(i - 1);
+        }
         if (i == 0) {
             return null;
         }
         return songs.get(i - 1);
+    }
+
+    public static Song skipShuffle() {
+        int i = Utils.generateRandomNumberInRange(songs.size());
+        return songs.get(i);
     }
 }
