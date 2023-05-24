@@ -40,7 +40,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnErrorLi
     public boolean min5 = false;
     public boolean min10 = false;
     public boolean min15 = false;
-
     public CountDownTimer countDownTimer;
 
     public class MusicBinder extends Binder {
